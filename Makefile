@@ -3,6 +3,7 @@ ASPARAMS = --32
 LDPARAMS = -melf_i386
 
 objects = loader.o kernel.o
+CFG = iso/boot/grub/grub.cfg
 
 %.o: %.cpp
 	g++ $(GPPPARAMS) -o $@ -c $<
@@ -16,5 +17,23 @@ mykernel.bin: linker.ld ${objects}
 install: mykernel.bin
 	sudo cp $< /boot/mykernel.bin
 	
+mykernel.iso: mykernel.bin
+	mkdir iso
+	mkdir iso/boot
+	mkdir iso/boot/grub
+	cp $< iso/boot
+	echo 'set timeout=0' > $(CFG)
+	echo 'set default=0' >> $(CFG)
+	echo '' >> $(CFG)
+	echo 'menuentry "myOS"{' >> $(CFG)
+	echo '	multiboot /boot/mykernel.bin' >> $(CFG)
+	echo '	boot' >> $(CFG)
+	echo '}' >> $(CFG)
+	grub-mkrescue --output=$@ iso
+	
+run: mykernel.iso
+	VBoxManage startvm myOS &
+	
 clean:
 	rm -rf *.o
+	rm -rf iso
